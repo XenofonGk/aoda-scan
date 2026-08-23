@@ -1,0 +1,9 @@
+node_modules/
+a11y-report/
+demo-report/
+ci-report/
+reports/
+*.log
+.DS_Store
+.env
+shot.png

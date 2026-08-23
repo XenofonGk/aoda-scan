@@ -1,0 +1,79 @@
+# Copy this file into your own repository to scan your site on every push
+# and on a weekly schedule. Set SITE_URL below.
+name: Accessibility
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '0 9 * * 1'      # Mondays, 09:00 UTC
+  workflow_dispatch:
+
+env:
+  SITE_URL: https://example.ca
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install aoda-scan
+        run: npm install -g aoda-scan
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Scan the site
+        id: scan
+        continue-on-error: true
+        run: |
+          aoda-scan "$SITE_URL" \
+            --max-pages 100 \
+            --concurrency 4 \
+            --out a11y-report \
+            --fail-on critical
+
+      - name: Summarise into the job page
+        if: always()
+        run: |
+          if [ ! -f a11y-report/summary.json ]; then
+            echo "## Accessibility — scan did not produce a report" >> $GITHUB_STEP_SUMMARY
+            echo "The scan failed before writing results. See the step log above." >> $GITHUB_STEP_SUMMARY
+            exit 0
+          fi
+          node -e "
+          const s = require('./a11y-report/summary.json');
+          if (!s.totals.scanUsable) {
+            console.log('## Accessibility — no pages could be scanned\n\nCheck SITE_URL, the network, and robots.txt.');
+            process.exit(0);
+          }
+          const t = s.totals;
+          const rows = s.topRules.slice(0, 10).map(r =>
+            \`| \${r.impact} | \${r.help} | \${r.pageCount} | \${r.nodes} |\`).join('\n');
+          console.log(\`## Accessibility — grade \${t.grade}
+
+          **\${t.pagesClean}/\${t.pagesScanned} pages** pass every automated WCAG 2.1 AA check (\${Math.round(t.conformance*100)}%).
+
+          | Impact | Rule | Pages | Elements |
+          |---|---|--:|--:|
+          \${rows}
+          \`.replace(/^ +/gm, ''));
+          " >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload the full report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: accessibility-report
+          path: a11y-report/
+          retention-days: 30
+          if-no-files-found: ignore
+
+      - name: Fail the build on critical violations
+        if: always() && steps.scan.outcome == 'failure'
+        run: |
+          echo "::error::Accessibility gate breached, or the scan reached no pages. See the uploaded report."
+          exit 1

@@ -1,0 +1,48 @@
+{
+  "name": "aoda-scan",
+  "version": "1.0.0",
+  "description": "Crawl an entire site and report where it stands against WCAG 2.1 AA and Ontario's AODA.",
+  "keywords": [
+    "accessibility",
+    "a11y",
+    "wcag",
+    "aoda",
+    "axe-core",
+    "audit",
+    "crawler",
+    "ci"
+  ],
+  "license": "MIT",
+  "author": "Xenofon Gkioka <ksenofwn58@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/XenofonGk/aoda-scan.git"
+  },
+  "bugs": {
+    "url": "https://github.com/XenofonGk/aoda-scan/issues"
+  },
+  "homepage": "https://github.com/XenofonGk/aoda-scan#readme",
+  "type": "commonjs",
+  "main": "src/index.js",
+  "bin": {
+    "aoda-scan": "src/cli.js"
+  },
+  "files": [
+    "src",
+    "scripts",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "lint": "node -e \"require('./src/index.js');console.log('load ok')\"",
+    "demo": "node scripts/demo.js"
+  },
+  "dependencies": {
+    "@axe-core/playwright": "^4.10.0",
+    "playwright": "^1.56.0"
+  }
+}

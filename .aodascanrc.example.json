@@ -1,0 +1,10 @@
+{
+  "site": "https://example.ca",
+  "maxPages": 150,
+  "maxDepth": 4,
+  "concurrency": 4,
+  "standard": "aa",
+  "exclude": "/(blog|archive|wp-admin)/",
+  "failOn": "critical",
+  "out": "reports/a11y"
+}

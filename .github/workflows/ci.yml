@@ -1,0 +1,91 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Test on Node ${{ matrix.node }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['18', '20', '22']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Module loads cleanly
+        run: npm run lint
+
+  e2e:
+    name: End-to-end scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - run: npm ci
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Serve the fixture site
+        run: npx --yes http-server fixtures -p 8901 --silent &
+
+      - name: Wait for the server
+        run: npx --yes wait-on http://localhost:8901/index.html --timeout 30000
+
+      - name: Scan it
+        run: node src/cli.js http://localhost:8901/index.html --max-pages 10 --out ci-report
+
+      - name: Assert the known violations were found
+        run: |
+          node -e "
+          const s = require('./ci-report/summary.json');
+          const ids = s.topRules.map(r => r.id);
+          const expected = ['image-alt', 'color-contrast', 'html-has-lang'];
+          const missing = expected.filter(e => !ids.includes(e));
+          if (missing.length) { console.error('Missing expected rules:', missing); process.exit(1); }
+          if (s.totals.pagesScanned !== 4) { console.error('Expected 4 pages, got', s.totals.pagesScanned); process.exit(1); }
+          console.log('E2E OK —', s.totals.grade, s.totals.pagesClean + '/' + s.totals.pagesScanned, 'clean');
+          "
+
+      - name: An unreachable site must fail the gate, not pass it
+        run: |
+          set +e
+          node src/cli.js http://localhost:1/nope --fail-on critical --out dead-report --quiet
+          code=$?
+          set -e
+          if [ "$code" != "1" ]; then echo "Expected exit 1 for an unreachable site, got $code"; exit 1; fi
+          node -e "
+          const s = require('./dead-report/summary.json');
+          if (s.totals.scanUsable !== false) { console.error('scanUsable should be false'); process.exit(1); }
+          if (s.totals.grade !== null) { console.error('grade should be null, got', s.totals.grade); process.exit(1); }
+          console.log('no-data path OK');
+          "
+
+      - name: Upload the report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: accessibility-report
+          path: ci-report/
