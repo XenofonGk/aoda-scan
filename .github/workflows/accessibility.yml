@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
 
 env:
-  SITE_URL: https://example.ca
+  SITE_URL: https://azclean.gr
 
 jobs:
   scan:
