@@ -16,12 +16,16 @@ jobs:
   scan:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+          cache: npm
 
+      # aoda-scan is not on npm yet, so this repo scans with its own checkout.
       - name: Install aoda-scan
-        run: npm install -g aoda-scan
+        run: npm ci && npm link
 
       - name: Install Chromium
         run: npx playwright install --with-deps chromium

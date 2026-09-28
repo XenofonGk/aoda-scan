@@ -8,15 +8,22 @@ crawls the site, tests every page, and rolls the results into one picture: a gra
 percentage, and a ranked list of what to fix first.
 
 [![CI](https://github.com/XenofonGk/aoda-scan/actions/workflows/ci.yml/badge.svg)](https://github.com/XenofonGk/aoda-scan/actions/workflows/ci.yml)
-[![npm](https://img.shields.io/npm/v/aoda-scan.svg)](https://www.npmjs.com/package/aoda-scan)
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 ---
 
 ## Quick start
 
+Needs Node.js 20 or newer. `aoda-scan` is not on npm yet, so install it from GitHub:
+
 ```bash
-npx aoda-scan https://example.ca
+git clone https://github.com/XenofonGk/aoda-scan.git
+cd aoda-scan
+npm install
+npx playwright install chromium   # the browser it scans with
+npm link                          # puts the aoda-scan command on your PATH
+
+aoda-scan https://example.ca
 ```
 
 ```
@@ -121,8 +128,8 @@ into your own repo, set `SITE_URL`, and every push is checked — with a summary
 job page and the full report uploaded as an artifact.
 
 ```yaml
-- run: npm install -g aoda-scan
-- run: npx playwright install --with-deps chromium
+- run: npm install -g github:XenofonGk/aoda-scan
+- run: npx --prefix "$(npm root -g)/aoda-scan" playwright install --with-deps chromium
 - run: aoda-scan "$SITE_URL" --fail-on critical
 ```
 
